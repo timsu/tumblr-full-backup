@@ -14,7 +14,7 @@ liked_dir    = "liked"
 where        = public_dir
 image_subdir = "images"
 download_num = -1  # number of posts to download, use -1 for ALL
-limit        = 3   # number of posts requested each time
+limit        = 5   # number of posts requested each time
 
 class TumblrPhotoExport
 
@@ -200,8 +200,17 @@ class TumblrPhotoExport
       $caption    = get_md($caption)
     end
 
+    $body = "<html><body>";
+    max_width = $player.map { |v| v["width"].to_i }.max
+    $player.each do |video|
+      if video["width"] == max_width
+        $body += video["embed_code"].gsub("muted", "controls")
+      end
+    end
+    $body += "</body></html>";
+
     # write post to disk
-    write_post("./#{@where}/", "#$slug.md", "\n#$headerstart\n#$headercustom\n#$headerend\n\n#$caption")
+    write_post("./#{@where}/", "video_#$slug.html", $body)
   end
 
   def parse_post_photo(post)
@@ -233,7 +242,9 @@ class TumblrPhotoExport
       end
 
       $images_arr.push $image_str
-      write_file("#$folder#$subfolder", $image_url, $filename)
+      if not File.exists?("#$folder#$subfolder/" + $filename)
+        write_file("#$folder#$subfolder", $image_url, $filename)
+      end
     end
 
     if $format == "html"
@@ -244,7 +255,7 @@ class TumblrPhotoExport
     $headercustom += "\nimages: #$images_arr"
 
     # write post to disk
-    write_post("./#{@where}/", "#$slug.md", "\n#$headerstart\n#$headercustom\n#$headerend\n\n#$caption")
+    # write_post("./#{@where}/", "#$slug.md", "\n#$headerstart\n#$headercustom\n#$headerend\n\n#$caption")
   end
 
   def parse_post_chat(post)
@@ -312,11 +323,12 @@ class TumblrPhotoExport
   def start
 
     parsed = 0
+    start_offset = 737
     rest = @download_num % @limit
     if rest > 1
       rest = 1
     end
-    batchs = (@download_num / @limit) + rest
+    batchs = ((@download_num - start_offset) / @limit) + rest
     puts "batchs download_num #{download_num} limit #{limit} batchs #{batchs}"
 
     if (@download_num < @limit)
@@ -327,14 +339,14 @@ class TumblrPhotoExport
     puts ":::::::::::::::::::::::::: Downloading \033[32m#{@download_num}\033[0m posts"
 
     batchs.times do |i|
-      offset = i*@limit
+      offset = start_offset + i*@limit
       if parsed + @limit > @download_num
         @limit = @download_num - parsed
       end
+      break if @limit < 1 # !result
       puts "::::::::::::: step #{i} parsed #{parsed} limit #{@limit} offset #{offset}"
       result = get_results(@limit, offset)
       parsed += @limit
-      break if !result
     end
 
     puts "\033[32m#{"Aaaaand we're done, parsed #{parsed} "}\033[0m"

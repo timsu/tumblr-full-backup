@@ -323,7 +323,7 @@ class TumblrPhotoExport
   def start
 
     parsed = 0
-    start_offset = 737
+    start_offset = 0
     rest = @download_num % @limit
     if rest > 1
       rest = 1

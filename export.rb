@@ -203,7 +203,7 @@ class TumblrPhotoExport
     $body = "<html><body>";
     max_width = $player.map { |v| v["width"].to_i }.max
     $player.each do |video|
-      if video["width"] == max_width
+      if video["width"] == max_width && video["embed_code"]
         $body += video["embed_code"].gsub("muted", "controls")
       end
     end
